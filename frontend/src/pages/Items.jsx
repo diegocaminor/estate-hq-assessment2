@@ -1,23 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { List } from "react-window";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Skeleton } from "../components/ui/skeleton";
 
 const Row = ({ index, style, data }) => {
   const item = data[index];
   return (
     <div
       style={style}
-      className="flex items-center px-4 hover:bg-gray-100 transition-colors border-b"
+      className="flex items-center justify-between px-4 transition-colors border-b border-slate-700"
     >
       <Link
         to={`/items/${item.id}`}
-        className="text-blue-600 font-medium hover:underline flex-1"
+        className="font-medium hover:underline flex-1 truncate mr-4"
       >
         {item.name}
       </Link>
-      <span className="text-gray-500 text-sm">${item.price}</span>
+      <span className="text-sm shrink-0">${item.price}</span>
     </div>
   );
 };
@@ -25,17 +26,54 @@ const Row = ({ index, style, data }) => {
 function Items() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
   const [total, setTotal] = useState(0);
+
+  // URL State Management
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const search = searchParams.get("q") || "";
   const LIMIT = 20;
 
+  // Local input state for debounced typing
+  const [inputValue, setInputValue] = useState(search);
+
+  // Sync Input to URL (Debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (inputValue !== search) {
+        setSearchParams((prev) => {
+          const newParams = new URLSearchParams(prev);
+          if (inputValue) {
+            newParams.set("q", inputValue);
+          } else {
+            newParams.delete("q");
+          }
+          newParams.set("page", "1");
+          newParams.set("limit", LIMIT.toString());
+          return newParams;
+        });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inputValue, search, setSearchParams]);
+
+  // Sync state to Input (e.g. on Back button)
+  useEffect(() => {
+    setInputValue(search);
+  }, [search]);
+
+  // Fetch Data based on URL Params
   useEffect(() => {
     const controller = new AbortController();
 
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Artificially wait 1 second to show Skeleton ONLY on first page
+        if (page === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+
         const res = await fetch(
           `http://localhost:4001/api/items?page=${page}&limit=${LIMIT}&q=${encodeURIComponent(
             search
@@ -62,17 +100,23 @@ function Items() {
       }
     };
 
-    const timer = setTimeout(() => {
-      fetchData();
-    }, 300);
+    fetchData();
 
     return () => {
       controller.abort();
-      clearTimeout(timer);
     };
   }, [page, search]);
 
   const totalPages = Math.ceil(total / LIMIT);
+
+  const handlePageChange = (newPage) => {
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set("page", newPage.toString());
+      newParams.set("limit", LIMIT.toString());
+      return newParams;
+    });
+  };
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-6">
@@ -86,31 +130,40 @@ function Items() {
           type="text"
           className="w-full text-white"
           placeholder="Search items..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
         />
       </div>
 
-      {loading && <p className="text-center text-gray-500">Loading...</p>}
-
-      {!loading && items.length === 0 && (
-        <div className="text-center py-10 text-gray-400">No items found.</div>
-      )}
-
-      {!loading && items.length > 0 && (
-        <div className="rounded-md border h-[500px] overflow-hidden shadow-sm">
-          <List
-            rowCount={items.length}
-            rowHeight={50}
-            rowComponent={Row}
-            rowProps={{ data: items }}
-            className="products-list"
-            style={{ height: "500px" }}
-          />
+      {loading ? (
+        <div className="rounded-md border h-[500px] overflow-hidden shadow-sm bg-[#1e293b] p-4 space-y-4">
+          {/* Skeleton Loader matching List layout */}
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between h-[34px]">
+              <Skeleton className="h-4 w-[200px]" />
+              <Skeleton className="h-4 w-[50px]" />
+            </div>
+          ))}
         </div>
+      ) : (
+        <>
+          {items.length === 0 ? (
+            <div className="text-center py-10 text-gray-400">
+              No items found.
+            </div>
+          ) : (
+            <div className="rounded-md border h-[500px] overflow-hidden shadow-sm">
+              <List
+                rowCount={items.length}
+                rowHeight={50}
+                rowComponent={Row}
+                rowProps={{ data: items }}
+                className="products-list"
+                style={{ height: "500px" }}
+              />
+            </div>
+          )}
+        </>
       )}
 
       <div className="flex items-center justify-between">
@@ -118,7 +171,7 @@ function Items() {
           variant="outline"
           size="sm"
           disabled={page <= 1}
-          onClick={() => setPage((p) => p - 1)}
+          onClick={() => handlePageChange(page - 1)}
         >
           Previous
         </Button>
@@ -129,7 +182,7 @@ function Items() {
           variant="outline"
           size="sm"
           disabled={page >= totalPages}
-          onClick={() => setPage((p) => p + 1)}
+          onClick={() => handlePageChange(page + 1)}
         >
           Next
         </Button>
