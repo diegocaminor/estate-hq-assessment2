@@ -101,13 +101,13 @@ function Items() {
       )}
 
       {!loading && items.length > 0 && (
-        <div className="rounded-md border h-[500px] overflow-hidden bg-white shadow-sm">
+        <div className="rounded-md border h-[500px] overflow-hidden shadow-sm">
           <List
             rowCount={items.length}
             rowHeight={50}
             rowComponent={Row}
             rowProps={{ data: items }}
-            className="products-list bg-gray-50"
+            className="products-list"
             style={{ height: "500px" }}
           />
         </div>

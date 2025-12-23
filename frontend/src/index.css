@@ -20,3 +20,35 @@ body {
   min-width: 320px;
   min-height: 100vh;
 }
+
+.products-list {
+  background-color: #1e293b !important;
+}
+
+.products-list > div > div {
+  border-bottom: 1px solid #334155;
+  color: #e2e8f0 !important;
+  transition: all 0.2s ease;
+}
+
+.products-list > div > div:hover {
+  background-color: #334155 !important;
+  cursor: pointer;
+}
+
+.products-list a {
+  color: #60a5fa !important;
+  font-weight: 500;
+}
+
+.products-list a:hover {
+  color: #93c5fd !important;
+}
+
+.products-list span {
+  color: #94a3b8 !important;
+}
+
+.products-list span:hover {
+  color: #cbd5e1 !important;
+}
