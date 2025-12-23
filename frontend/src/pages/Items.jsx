@@ -1,24 +1,23 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { List } from "react-window";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 
 const Row = ({ index, style, data }) => {
   const item = data[index];
   return (
     <div
-      style={{
-        ...style,
-        display: "flex",
-        alignItems: "center",
-        padding: "0 10px",
-      }}
+      style={style}
+      className="flex items-center px-4 hover:bg-gray-100 transition-colors border-b"
     >
       <Link
         to={`/items/${item.id}`}
-        style={{ textDecoration: "none", color: "blue" }}
+        className="text-blue-600 font-medium hover:underline flex-1"
       >
-        {item.name} <span style={{ color: "#666" }}>(${item.price})</span>
+        {item.name}
       </Link>
+      <span className="text-gray-500 text-sm">${item.price}</span>
     </div>
   );
 };
@@ -29,7 +28,7 @@ function Items() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [total, setTotal] = useState(0);
-  const LIMIT = 20; // Reasonable limit for pagination
+  const LIMIT = 20;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -47,6 +46,7 @@ function Items() {
         );
         if (!res.ok) throw new Error("Network response was not ok");
         const json = await res.json();
+
         if (json.data) {
           setItems(json.data);
           setTotal(json.meta.total);
@@ -62,7 +62,6 @@ function Items() {
       }
     };
 
-    // Debounce search
     const timer = setTimeout(() => {
       fetchData();
     }, 300);
@@ -76,53 +75,65 @@ function Items() {
   const totalPages = Math.ceil(total / LIMIT);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Items</h1>
+    <div className="p-8 max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Items</h1>
+        <span className="text-muted-foreground text-sm">Total: {total}</span>
+      </div>
 
-      <div style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
-        <input
+      <div className="flex w-full max-w-sm items-center space-x-2">
+        <Input
           type="text"
+          className="w-full text-white"
+          placeholder="Search items..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
             setPage(1);
           }}
-          placeholder="Search items..."
-          style={{ padding: "5px", fontSize: "16px", width: "300px" }}
         />
       </div>
 
-      <div style={{ marginBottom: "10px" }}>
-        <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-          Previous
-        </button>
-        <span style={{ margin: "0 10px" }}>
-          Page {page} of {totalPages || 1} (Total: {total})
-        </span>
-        <button
-          disabled={page >= totalPages}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Next
-        </button>
-      </div>
+      {loading && <p className="text-center text-gray-500">Loading...</p>}
 
-      {loading && <p>Loading...</p>}
-
-      {!loading && items.length === 0 && <p>No items found.</p>}
+      {!loading && items.length === 0 && (
+        <div className="text-center py-10 text-gray-400">No items found.</div>
+      )}
 
       {!loading && items.length > 0 && (
-        <div style={{ border: "1px solid #ccc", height: "500px" }}>
+        <div className="rounded-md border h-[500px] overflow-hidden bg-white shadow-sm">
           <List
             rowCount={items.length}
-            rowHeight={40}
+            rowHeight={50}
             rowComponent={Row}
             rowProps={{ data: items }}
-            className="products-list"
+            className="products-list bg-gray-50"
             style={{ height: "500px" }}
           />
         </div>
       )}
+
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page <= 1}
+          onClick={() => setPage((p) => p - 1)}
+        >
+          Previous
+        </Button>
+        <span className="text-sm text-gray-600">
+          Page {page} of {totalPages || 1}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </Button>
+      </div>
     </div>
   );
 }
