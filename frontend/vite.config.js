@@ -55,28 +55,35 @@ function envPlugin() {
 // https://vitejs.dev/config/server-options.html#server-https
 // https://vitejs.dev/config/server-options.html#server-port
 function devServerPlugin() {
-    return {
-        name: "dev-server-plugin",
-        config(_, { mode }) {
-            const { HOST, PORT, HTTPS, SSL_CRT_FILE, SSL_KEY_FILE } = loadEnv(mode, ".", ["HOST", "PORT", "HTTPS", "SSL_CRT_FILE", "SSL_KEY_FILE"]);
-            const https = HTTPS === "true";
-            return {
-                server: {
-                    host: HOST || "0.0.0.0",
-                    port: parseInt(PORT || "3000", 10),
-                    open: true,
-                    ...(https &&
-                        SSL_CRT_FILE &&
-                        SSL_KEY_FILE && {
-                        https: {
-                            cert: readFileSync(resolve(SSL_CRT_FILE)),
-                            key: readFileSync(resolve(SSL_KEY_FILE)),
-                        },
-                    }),
-                },
-            };
+  return {
+    name: "dev-server-plugin",
+    config(_, { mode }) {
+      const { HOST, PORT, HTTPS, SSL_CRT_FILE, SSL_KEY_FILE } = loadEnv(mode, ".", ["HOST", "PORT", "HTTPS", "SSL_CRT_FILE", "SSL_KEY_FILE"]);
+      const https = HTTPS === "true";
+      return {
+        server: {
+          host: HOST || "0.0.0.0",
+          port: parseInt(PORT || "3000", 10),
+          open: true,
+          proxy: {
+            '/api': {
+              target: 'http://localhost:4001',
+              changeOrigin: true,
+              secure: false,
+            },
+          },
+          ...(https &&
+            SSL_CRT_FILE &&
+            SSL_KEY_FILE && {
+              https: {
+                cert: readFileSync(resolve(SSL_CRT_FILE)),
+                key: readFileSync(resolve(SSL_KEY_FILE)),
+              },
+            }),
         },
-    };
+      };
+    },
+  };
 }
 // Migration guide: Follow the guide below
 // https://vitejs.dev/config/build-options.html#build-sourcemap
